@@ -1,6 +1,8 @@
 package com.company;
 
-public class Contact implements Comparable {
+import java.io.Serializable;
+
+public class Contact implements Comparable, Serializable {
     String namef;
     String namel;
     String[] names;
@@ -64,8 +66,28 @@ public class Contact implements Comparable {
             char a = (this.toString().toLowerCase()).toCharArray()[0];
             char b = (((Contact) o).toString().toLowerCase()).toCharArray()[0];
 
+            if(b == a) {
+                char c = (this.getNamef().toLowerCase()).toCharArray()[0];
+                char d = (((Contact) o).getNamef().toLowerCase()).toCharArray()[0];
+
+                return (d - c);
+            }
+
             return(b - a);
         }
         return 0;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof Contact) {
+            if(((Contact) obj).namef.equals(namef)) {
+                if(((Contact) obj).namel.equals(namel))
+                    if(((Contact) obj).num.equals(num))
+                        if(((Contact) obj).add.equals(add))
+                            return true;
+            }
+        }
+        return false;
     }
 }

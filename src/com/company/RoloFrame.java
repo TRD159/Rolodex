@@ -1,25 +1,20 @@
 package com.company;
 
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.io.*;
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
 
-public class RoloFrame extends JFrame{
+public class RoloFrame extends JFrame {
     JList clist;
-    ArrayList<String> ex = new ArrayList<>() {
-        {
-            //add("B, A");
-            //add("F, E");
-        }
-    };
+    ArrayList<String> ex;
 
-    ArrayList<Contact> contacts = new ArrayList<>(){
-        {
-            //add(new Contact("A", "B", "C", "D"));
-            //add(new Contact("E", "F", "G", "H"));
-        }
-    };
+    ArrayList<Contact> contacts;
 
     JScrollPane scroll = new JScrollPane(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 
@@ -37,14 +32,79 @@ public class RoloFrame extends JFrame{
     JLabel lbl_address = new JLabel("Address: ");
     JTextArea txt_address = new JTextArea();
 
+    //JOptionPane save = new JOptionPane();
+
+    int s = -1;
+
     public RoloFrame(String name) {
         super(name);
 
-        clist = new JList<>() {
+        ex = new ArrayList<>() {
             {
-                setListData(ex.toArray());
+                //add("B, A");
+                //add("F, E");
             }
         };
+
+        contacts = new ArrayList<>();
+
+        setDefaultCloseOperation(0);
+
+        WindowListener wList = new WindowAdapter() {
+            @Override
+            public void windowOpened(WindowEvent e) {
+                try {
+                    FileInputStream exfin = new FileInputStream("Ex.ser");
+                    FileInputStream cfin = new FileInputStream("Cont.ser");
+
+                    ObjectInputStream exin = new ObjectInputStream(exfin);
+                    ObjectInputStream cin = new ObjectInputStream(cfin);
+
+                    ex = (ArrayList<String>) exin.readObject();
+                    contacts = (ArrayList<Contact>) cin.readObject();
+
+                    clist.setListData(ex.toArray());
+
+                    exin.close();
+                    cin.close();
+
+                    exfin.close();
+                    cfin.close();
+                } catch (Exception x) {
+                    x.printStackTrace();
+                }
+            }
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+                try {
+                    FileOutputStream exfos = new FileOutputStream("Ex.ser");
+                    FileOutputStream cfos = new FileOutputStream("Cont.ser");
+
+                    ObjectOutputStream exos = new ObjectOutputStream(exfos);
+                    ObjectOutputStream cos = new ObjectOutputStream(cfos);
+
+                    exos.writeObject(ex);
+                    cos.writeObject(contacts);
+
+                    exos.close();
+                    cos.close();
+
+                    cfos.close();
+                    exfos.close();
+
+                    System.exit(0);
+                } catch (Exception x) {
+                    x.printStackTrace();
+                    System.exit(0);
+                }
+            }
+        };
+
+        addWindowListener(wList);
+
+        clist = new JList<>();
+
         clist.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         clist.setLayoutOrientation(JList.VERTICAL);
 
@@ -56,6 +116,7 @@ public class RoloFrame extends JFrame{
 
         btn_save.setBounds(203, 245, 145, 50);
         btn_new.setBounds(351, 245, 145, 50);
+        btn_del.setBounds(203, 190, 293, 50);
 
         lbl_name.setBounds(200, 0, 400, 50);
         lbl_name.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 20));
@@ -66,7 +127,7 @@ public class RoloFrame extends JFrame{
         lbl_phone.setBounds(200, 56, 400, 50);
         lbl_phone.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 20));
 
-        txt_phone.setBounds(375, 71, 100, 25);
+        txt_phone.setBounds(375, 72, 100, 25);
 
         lbl_address.setBounds(200, 95, 400, 25);
         lbl_address.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 20));
@@ -83,9 +144,10 @@ public class RoloFrame extends JFrame{
 
         setSize(new Dimension(500 + getInsets().left + getInsets().right, 300 + getInsets().top + getInsets().bottom));
 
-        setDefaultCloseOperation(3);
 
         btn_save.addActionListener(e -> save());
+        btn_new.addActionListener(e -> nu());
+        btn_del.addActionListener(e -> del());
 
         clist.addListSelectionListener(e -> switc());
 
@@ -95,6 +157,9 @@ public class RoloFrame extends JFrame{
 
         add(btn_save);
         add(btn_new);
+        add(btn_del);
+
+        btn_del.setVisible(false);
 
         add(lbl_name);
         add(txt_namef);
@@ -117,6 +182,20 @@ public class RoloFrame extends JFrame{
         txt_phone.setText("");
 
         txt_address.setText("");
+
+        clist.clearSelection();
+
+        btn_del.setVisible(false);
+    }
+
+    public void del() {
+        ex.remove(clist.getSelectedIndex());
+        contacts.remove(clist.getSelectedIndex());
+
+        nu();
+
+        clist.setListData(ex.toArray());
+        scroll.setViewportView(clist);
     }
 
     public void save() {
@@ -136,11 +215,43 @@ public class RoloFrame extends JFrame{
         contacts.sort(new Sortr());
 
         nu();
+
+        clist.setListData(ex.toArray());
+        scroll.setViewportView(clist);
     }
 
     public void switc() {
+        if(clist.getSelectedIndex() == -1) {
+            nu();
+            return;
+        }
+        //System.out.print(clist.getSelectedIndex());
 
-        Contact c = contacts.get(clist.getSelectedIndex());
+        int n = clist.getSelectedIndex();
+
+        if(s != -1/* && !(txt_namef.getText().equals(contacts.get(s).getNamef()) && txt_namel.getText().equals(contacts.get(s).getNamel()) && txt_phone.getText().equals(contacts.get(s).getNum()) && txt_address.getText().equals(contacts.get(s).getAdd()))*/) {
+            Contact oc = contacts.get(s);
+            Contact nc = new Contact(txt_namef.getText(), txt_namel.getText(), txt_phone.getText(), txt_address.getText());
+
+            if(!oc.equals(nc)) {
+                int o = JOptionPane.showConfirmDialog(this, "Save Changes?", "Hey!", JOptionPane.YES_NO_CANCEL_OPTION);
+
+                switch (o) {
+                    case JOptionPane.YES_OPTION:
+                        save();
+                        break;
+                    case JOptionPane.NO_OPTION:
+                        break;
+                    case JOptionPane.CANCEL_OPTION:
+                        return;
+                }
+            }
+
+        }
+        s = clist.getSelectedIndex();
+        //clist.setSelectedIndex(s);
+
+        Contact c = contacts.get(s);
 
         txt_namef.setText(c.getNamef());
         txt_namel.setText(c.getNamel());
@@ -148,5 +259,7 @@ public class RoloFrame extends JFrame{
         txt_phone.setText(c.getNum());
 
         txt_address.setText(c.getAdd());
+
+        btn_del.setVisible(true);
     }
 }
